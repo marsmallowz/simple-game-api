@@ -10,7 +10,9 @@ import {
 import { NewTreesService } from './new-trees.service';
 import { CreateNewTreeDto } from './dto/create-new-tree.dto';
 import { UpdateNewTreeDto } from './dto/update-new-tree.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('new-trees')
 @Controller('new-trees')
 export class NewTreesController {
   constructor(private readonly newTreesService: NewTreesService) {}

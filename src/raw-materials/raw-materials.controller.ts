@@ -1,8 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { RawMaterialsService } from './raw-materials.service';
 import { CreateRawMaterialDto } from './dto/create-raw-material.dto';
 import { UpdateRawMaterialDto } from './dto/update-raw-material.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('raw-materials')
 @Controller('raw-materials')
 export class RawMaterialsController {
   constructor(private readonly rawMaterialsService: RawMaterialsService) {}
@@ -23,7 +33,10 @@ export class RawMaterialsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRawMaterialDto: UpdateRawMaterialDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateRawMaterialDto: UpdateRawMaterialDto,
+  ) {
     return this.rawMaterialsService.update(+id, updateRawMaterialDto);
   }
 

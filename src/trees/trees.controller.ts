@@ -1,8 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { TreesService } from './trees.service';
 import { CreateTreeDto } from './dto/create-tree.dto';
 import { UpdateTreeDto } from './dto/update-tree.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('trees')
 @Controller('trees')
 export class TreesController {
   constructor(private readonly treesService: TreesService) {}

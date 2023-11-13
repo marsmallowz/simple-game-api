@@ -11,7 +11,9 @@ import { NewMonstersService } from './new-monsters.service';
 import { CreateNewMonsterDto } from './dto/create-new-monster.dto';
 import { UpdateNewMonsterDto } from './dto/update-new-monster.dto';
 import { Public } from 'src/auth/decorators/auth.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('new-monsters')
 @Controller('new-monsters')
 export class NewMonstersController {
   constructor(private readonly newMonstersService: NewMonstersService) {}

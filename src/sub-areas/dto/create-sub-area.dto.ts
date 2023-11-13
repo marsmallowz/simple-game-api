@@ -1,4 +1,4 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsString } from 'class-validator';
 
 export class CreateSubAreaDto {
   @IsString()
@@ -7,8 +7,10 @@ export class CreateSubAreaDto {
   @IsNumber()
   coordinate: number;
 
+  @IsArray()
   trees: { name: string; quantity: number }[];
 
+  @IsArray()
   monsters: { name: string; level: number; hp: number; mp: number }[];
 
   @IsString()

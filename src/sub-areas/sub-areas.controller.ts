@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { SubAreasService } from './sub-areas.service';
 import { CreateSubAreaDto } from './dto/create-sub-area.dto';
 import { Public } from 'src/auth/decorators/auth.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('sub-areas')
 @Controller('sub-areas')
 export class SubAreasController {
   constructor(private readonly subAreasService: SubAreasService) {}
