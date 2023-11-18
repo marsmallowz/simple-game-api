@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { TreesService } from './trees.service';
 import { CreateTreeDto } from './dto/create-tree.dto';
@@ -23,22 +24,22 @@ export class TreesController {
   }
 
   @Get()
-  findAll() {
-    return this.treesService.findAll();
+  findAll(@Query('subAreaId') subAreaId: string) {
+    return this.treesService.findAll({ subAreaId: subAreaId });
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.treesService.findOne(+id);
+    return this.treesService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTreeDto: UpdateTreeDto) {
-    return this.treesService.update(+id, updateTreeDto);
+    return this.treesService.update(id, updateTreeDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.treesService.remove(+id);
+    return this.treesService.remove(id);
   }
 }

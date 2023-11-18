@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CreateNewMonsterDto } from './dto/create-new-monster.dto';
-import { UpdateNewMonsterDto } from './dto/update-new-monster.dto';
-import { NewMonster } from './schemas/new-monster.schema';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
-import { User } from 'src/users/schemas/user.schema';
-import { RawMaterial } from 'src/raw-materials/schemas/raw-material.schema';
 import { Inventory } from 'src/inventories/schemas/inventory.schema';
+import { Monster } from 'src/monsters/schemas/monster.schema';
+import { RawMaterial } from 'src/raw-materials/schemas/raw-material.schema';
+import { User } from 'src/users/schemas/user.schema';
 
 @Injectable()
-export class NewMonstersService {
+export class BattlesService {
   constructor(
     @InjectConnection() private readonly connection: mongoose.Connection,
-    @InjectModel(NewMonster.name) private newMonsterModel: Model<NewMonster>,
+    @InjectModel(Monster.name) private monsterModel: Model<Monster>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(RawMaterial.name) private rawMaterialModel: Model<RawMaterial>,
     @InjectModel(Inventory.name) private inventoryModel: Model<Inventory>,
@@ -30,9 +28,12 @@ export class NewMonstersService {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      const monster = await this.newMonsterModel
+      const monster = await this.monsterModel
         .findById(monsterId)
-        .populate('rawMaterialDrops.rawMaterial')
+        .populate({
+          path: 'rawMaterialDrops.rawMaterial',
+          model: 'RawMaterial',
+        })
         .session(session);
 
       const exp = Math.round((damage / monster.totalHp) * monster.experience);
@@ -86,7 +87,12 @@ export class NewMonstersService {
         });
         if (dropped) {
           const existingItemIndex = userInventory.rawMaterials.findIndex(
-            (item: any) => item.rawMaterial.equals(rawMaterial.rawMaterial),
+            (item) => {
+              return (
+                item.rawMaterial.toString() ===
+                (rawMaterial as any).rawMaterial._id.toString()
+              );
+            },
           );
           if (existingItemIndex !== -1) {
             userInventory.rawMaterials[existingItemIndex].quantity += 1;
@@ -96,12 +102,14 @@ export class NewMonstersService {
               rawMaterial: rawMaterial.rawMaterial,
             });
           }
+          item.push(rawMaterial.rawMaterial);
         }
       }
       await user.save();
       await userInventory.save();
       await session.commitTransaction();
       session.endSession();
+
       return {
         exp,
         item,
@@ -137,9 +145,7 @@ export class NewMonstersService {
     monsterId: string;
   }) {
     const user = await this.userModel.findById(userId);
-    const monster = await this.newMonsterModel
-      .findById(monsterId)
-      .populate('monster');
+    const monster = await this.monsterModel.findById(monsterId);
     let damage = user.attack;
     monster.currentHp -= damage;
     if (monster.currentHp < 0) {
@@ -157,13 +163,7 @@ export class NewMonstersService {
     userId: string;
     monsterId: string;
   }) {
-    const monster = await this.newMonsterModel.findById(monsterId).populate({
-      path: 'monster',
-      model: 'Monster',
-      select: {
-        name: true,
-      },
-    });
+    const monster = await this.monsterModel.findById(monsterId);
     const result = await this.userModel.findByIdAndUpdate(
       userId,
       { $inc: { currentHp: -monster.attack } },
@@ -174,44 +174,5 @@ export class NewMonstersService {
       await result.save();
     }
     return { user: result, monster: monster };
-  }
-
-  async create(createNewMonsterDto: CreateNewMonsterDto) {
-    const newMonster = await this.newMonsterModel.create(createNewMonsterDto);
-    const subAreaPromises = createNewMonsterDto.rawMaterialDrops.map(
-      (rawMaterial) => {
-        return new this.rawMaterialModel({
-          name: rawMaterial.name,
-        })
-          .save()
-          .then((rawMaterialSaved) => {
-            return { rate: 1, rawMaterial: rawMaterialSaved };
-          });
-      },
-    );
-    const savedSubAreas = await Promise.all(subAreaPromises);
-    newMonster.rawMaterialDrops = savedSubAreas;
-    await newMonster.save();
-    return this.newMonsterModel
-      .findById(newMonster._id)
-      .populate('rawMaterialDrops.rawMaterial')
-      .exec();
-  }
-
-  findAll() {
-    return `This action returns all newMonsters`;
-  }
-
-  async findOne(monsterId: string) {
-    const newMonster = await this.newMonsterModel.findById(monsterId);
-    return newMonster;
-  }
-
-  update(id: number, updateNewMonsterDto: UpdateNewMonsterDto) {
-    return `This action updates a #${id} newMonster`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} newMonster`;
   }
 }

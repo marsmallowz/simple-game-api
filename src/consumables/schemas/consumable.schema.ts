@@ -7,6 +7,12 @@ export type ConsumableDocument = HydratedDocument<Consumable>;
 export class Consumable {
   @Prop({ unique: true })
   name: string;
+
+  @Prop()
+  health: number;
+
+  @Prop()
+  mana: number;
 }
 
 export const ConsumableSchema = SchemaFactory.createForClass(Consumable);

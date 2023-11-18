@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { CreateRawMaterialDto } from './dto/create-raw-material.dto';
 import { UpdateRawMaterialDto } from './dto/update-raw-material.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { RawMaterial } from './schemas/raw-material.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class RawMaterialsService {
-  create(createRawMaterialDto: CreateRawMaterialDto) {
-    return 'This action adds a new rawMaterial';
+  constructor(
+    @InjectModel(RawMaterial.name) private rawMaterialModel: Model<RawMaterial>,
+  ) {}
+
+  async create(createRawMaterialDto: CreateRawMaterialDto) {
+    return await this.rawMaterialModel.create(createRawMaterialDto);
   }
 
-  findAll() {
-    return `This action returns all rawMaterials`;
+  async findAll() {
+    return await this.rawMaterialModel.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} rawMaterial`;
+  async findOne(id: string) {
+    return await this.rawMaterialModel.findById(id);
   }
 
-  update(id: number, updateRawMaterialDto: UpdateRawMaterialDto) {
-    return `This action updates a #${id} rawMaterial`;
+  async update(id: string, updateRawMaterialDto: UpdateRawMaterialDto) {
+    return await this.rawMaterialModel.findByIdAndUpdate(
+      id,
+      updateRawMaterialDto,
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} rawMaterial`;
+  async remove(id: string) {
+    return await this.rawMaterialModel.findByIdAndRemove(id);
   }
 }

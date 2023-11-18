@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { Inventory } from 'src/inventories/schemas/inventory.schema';
-import { SubArea } from 'src/sub-areas/schemas/sub-area.schema';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -73,9 +72,9 @@ export class User {
   @Prop({
     type: 'ObjectId',
     ref: 'SubArea',
-    default: new Types.ObjectId('652784523af8cb2c75bfe799'),
+    default: new Types.ObjectId('65548ed9e3d04af57862bf1f'),
   })
-  position: SubArea;
+  position: string;
 
   @Prop({
     type: 'ObjectId',
@@ -85,28 +84,3 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-// gainExp(amount: number): void {
-//   this.experience += amount;
-//   this.checkLevelUp();
-// }
-
-// loseExp(amount: number): void {
-//   if (this.experience >= amount) {
-//     this.experience -= amount;
-//   } else {
-//     this.experience = 0;
-//   }
-// }
-
-// checkLevelUp(): void {
-//   const expRequired: number = 100 * Math.pow(2, this.level - 1);
-//   if (this.experience >= expRequired) {
-//     this.levelUp();
-//   }
-// }
-
-// levelUp(): void {
-//   this.level++;
-//   console.log(`Player leveled up to level ${this.level}!`);
-// }

@@ -1,8 +1,18 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Patch,
+} from '@nestjs/common';
 import { SubAreasService } from './sub-areas.service';
 import { CreateSubAreaDto } from './dto/create-sub-area.dto';
 import { Public } from 'src/auth/decorators/auth.decorator';
 import { ApiTags } from '@nestjs/swagger';
+import { FindSubAreaDto } from './dto/find-sub-area.dto';
+import { UpdateSubAreaDto } from './dto/update-sub-area.dto';
 
 @ApiTags('sub-areas')
 @Controller('sub-areas')
@@ -16,20 +26,19 @@ export class SubAreasController {
   }
 
   @Get()
-  findAll() {
-    return this.subAreasService.findAll();
+  findAll(@Body() findSubAreaDto: FindSubAreaDto) {
+    return this.subAreasService.findAll(findSubAreaDto);
   }
 
-  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.subAreasService.findOne(id);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateSubAreaDto: UpdateSubAreaDto) {
-  //   return this.subAreasService.update(+id, updateSubAreaDto);
-  // }
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateSubAreaDto: UpdateSubAreaDto) {
+    return this.subAreasService.update(id, updateSubAreaDto);
+  }
 
   @Delete(':id')
   remove(@Param('id') id: string) {

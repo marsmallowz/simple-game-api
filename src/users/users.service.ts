@@ -45,7 +45,6 @@ export class UsersService {
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.userModel.findById(id);
     let pointCost = 0;
-    console.log(updateUserDto);
     if (updateUserDto.str) {
       if (user.str <= updateUserDto.str) {
         pointCost += updateUserDto.str - user.str;

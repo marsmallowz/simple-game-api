@@ -36,7 +36,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('profile')
   getProfile(@Req() request) {
-    return this.authService.getProfile(request.user.id);
+    return this.authService.getProfile(request.user.sub);
   }
 
   @Public()

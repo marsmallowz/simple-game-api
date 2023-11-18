@@ -11,11 +11,12 @@ import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { AreasService } from './areas.service';
 import { UsersService } from 'src/users/users.service';
-import { NewTreesService } from 'src/new-trees/new-trees.service';
-import { NewMonstersService } from 'src/new-monsters/new-monsters.service';
 import { SubAreaRoomsService } from 'src/global-variabels/sub-area-rooms/sub-area-rooms.service';
 import { SubAreasService } from 'src/sub-areas/sub-areas.service';
 import { UniqueTokenStorage } from 'src/auth/unique-token.storage';
+import { MonstersService } from 'src/monsters/monsters.service';
+import { BattlesService } from 'src/battles/battles.service';
+import { TreesService } from 'src/trees/trees.service';
 
 // transports: ['websocket'],
 @WebSocketGateway({ namespace: 'areas' })
@@ -24,15 +25,19 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly authService: AuthService,
     private readonly areaService: AreasService,
     private readonly userService: UsersService,
-    private readonly newTreeService: NewTreesService,
-    private readonly newMonsterService: NewMonstersService,
+    private readonly treeService: TreesService,
+    private readonly monsterService: MonstersService,
     private readonly subAreaService: SubAreasService,
+    private readonly battleService: BattlesService,
     private readonly subAreaRoomsService: SubAreaRoomsService,
     private readonly uniqueTokenStorage: UniqueTokenStorage,
   ) {}
   @WebSocketServer() server: Server;
   private intervals: Map<string, NodeJS.Timeout> = new Map();
-  private battleRooms: Map<string, any[]> = new Map();
+  private battleRooms: Map<
+    string,
+    { id: string; email: string; damage: number }[]
+  > = new Map();
 
   async handleConnection(client: Socket) {
     // const token = client.handshake.auth.token;
@@ -45,39 +50,47 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
       await this.uniqueTokenStorage.insert(userId, token);
-      const user: any = await this.userService.findOne(userId);
+      const user = await this.userService.findOne(userId);
       const userIdString: string = user._id.toString();
-      const position = await this.subAreaService.findOneBasic(user.position);
-      const positionIdString: string = position._id.toString();
-      client.join(positionIdString);
-      if (this.subAreaRoomsService.subAreaRooms.has(positionIdString)) {
-        const currentRooms =
-          this.subAreaRoomsService.subAreaRooms.get(positionIdString);
+      client.join(user.position.toString());
+      if (this.subAreaRoomsService.subAreaRooms.has(user.position.toString())) {
+        const currentRooms = this.subAreaRoomsService.subAreaRooms.get(
+          user.position.toString(),
+        );
         currentRooms.push({
           id: userIdString,
           email: user.email,
         });
         this.subAreaRoomsService.subAreaRooms.set(
-          positionIdString,
+          user.position.toString(),
           currentRooms,
         );
       } else {
-        this.subAreaRoomsService.subAreaRooms.set(positionIdString, [
+        this.subAreaRoomsService.subAreaRooms.set(user.position.toString(), [
           {
             id: userIdString,
             email: user.email,
           },
         ]);
       }
-      this.server.to(positionIdString).emit('joinSubArea', {
+      this.server.to(user.position.toString()).emit('joinSubArea', {
         id: userIdString,
         email: user.email,
-        position: positionIdString,
+        position: user.position.toString(),
       });
-      const area = await this.areaService.findOne(position.areaId);
+      const subArea = await this.subAreaService.findOne(
+        user.position.toString(),
+      );
+      const area = await this.areaService.findOne(subArea.areaId);
+      const subAreas = await this.subAreaService.findAll({
+        areaId: area._id.toString(),
+      });
       client.emit('getAreaDetails', {
         area: area,
-        users: this.subAreaRoomsService.subAreaRooms.get(positionIdString),
+        subAreas: subAreas,
+        users: this.subAreaRoomsService.subAreaRooms.get(
+          user.position.toString(),
+        ),
       });
       console.log('Autentikasi Berhasil');
     } catch (error) {
@@ -91,14 +104,16 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const isValid = await this.uniqueTokenStorage.validate(userId, token);
       if (isValid) {
-        const user: any = await this.userService.findOne(userId);
+        const user = await this.userService.findOne(userId);
         const userIdString: string = user._id.toString();
-        const position = await this.subAreaService.findOneBasic(user.position);
-        const positionIdString: string = position._id.toString();
         // remove from battleRooms
-        const subArea: any =
-          await this.subAreaService.findOne(positionIdString);
-        for (const monster of subArea.subAreaDetails.monsters) {
+        const subArea = await this.subAreaService.findOne(
+          user.position.toString(),
+        );
+        const monsters = await this.monsterService.findAll({
+          subAreaId: subArea._id.toString(),
+        });
+        for (const monster of monsters) {
           if (this.battleRooms.has(monster._id.toString())) {
             const currentPlayers = this.battleRooms
               .get(monster._id.toString())
@@ -107,13 +122,15 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           }
         }
         // remove from subAreaRooms
-        if (this.subAreaRoomsService.subAreaRooms.has(positionIdString)) {
+        if (
+          this.subAreaRoomsService.subAreaRooms.has(user.position.toString())
+        ) {
           console.log('Yang keluar:', user.email);
           const currentRooms = this.subAreaRoomsService.subAreaRooms
-            .get(positionIdString)
+            .get(user.position.toString())
             .filter((userx) => userx.id !== userIdString);
           this.subAreaRoomsService.subAreaRooms.set(
-            positionIdString,
+            user.position.toString(),
             currentRooms,
           );
         }
@@ -133,16 +150,22 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const token = client.handshake.headers.auth as string;
     const userId = client.handshake.headers.userid as string;
-    const user = await this.authService.checkTokenOnRedis(userId, token);
-    if (user !== null) {
-      const position: any = user.position;
-      const positionString: string = position._id.toString();
+    const userX = await this.authService.checkTokenOnRedis(userId, token);
+    const user = await this.userService.findOne(userX.id.toString());
+    if (userX !== null) {
+      const positionString = userX.position.toString();
       try {
-        const monster = await this.newMonsterService.findOne(data.monsterId);
+        const monster = await this.monsterService.findOne(data.monsterId);
         // hanya baru bisa berfungsi agar tidak menyerang monster yang sudah mati
+        if (user.currentHp <= 0) {
+          return client.emit('system', {
+            message: 'Cannot attack you have been killed.',
+          });
+        }
+
         if (monster.currentHp <= 0) {
-          return this.server.to(positionString).emit('actionMonster', {
-            massage: 'Monster has been killed',
+          return client.emit('system', {
+            message: 'Monster has been killed.',
           });
         }
 
@@ -151,29 +174,30 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (this.battleRooms.has(data.monsterId)) {
           const currentPlayers = this.battleRooms.get(data.monsterId);
           const hasUser = currentPlayers.some(
-            (userX) => userX.id === user.id.toString(),
+            (userX) => userX.id === userX.id.toString(),
           );
           if (!hasUser) {
             currentPlayers.push({
-              id: user.id.toString(),
-              email: user.email,
+              id: userX.id.toString(),
+              email: userX.email,
               damage: 0,
             });
           }
+
           this.battleRooms.set(data.monsterId, currentPlayers);
         } else {
           this.battleRooms.set(data.monsterId, [
-            { id: user.id.toString(), email: user.email, damage: 0 },
+            { id: userX.id.toString(), email: userX.email, damage: 0 },
           ]);
         }
-        const result: any = await this.newMonsterService.attackMonster({
-          userId: user.id.toString(),
+        const result = await this.battleService.attackMonster({
+          userId: userX.id.toString(),
           monsterId: data.monsterId,
         });
 
         const users = this.battleRooms.get(data.monsterId);
         const newUsers = users.map((item) => {
-          if (item.id === user.id.toString()) {
+          if (item.id === userX.id.toString()) {
             return { ...item, damage: item.damage + result.damage };
           } else {
             return item;
@@ -183,29 +207,32 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.battleRooms.set(data.monsterId, newUsers);
 
         if (result.monster) {
-          console.log(result.monster);
           this.server.to(positionString).emit('attackMonster', {
-            email: user.email,
-            monsterName: result.monster.monster.name,
+            email: userX.email,
+            monsterName: result.monster.name,
             monsterId: result.monster._id.toString(),
             damage: result.damage,
           });
           if (result.monster.currentHp <= 0) {
+            this.server.to(positionString).emit('monsterDefeat', {
+              email: userX.email,
+              monsterName: result.monster.name,
+            });
             for (const user of this.battleRooms.get(data.monsterId)) {
               const calculateResult =
-                await this.newMonsterService.calculateExpAndDrop({
+                await this.battleService.calculateExpAndDrop({
                   userId: user.id,
                   damage: user.damage,
                   monsterId: data.monsterId,
                 });
               this.server.to(positionString).emit('getDrop', {
                 email: user.email,
-                monsterName: result.monster.monster.name,
-                exp: calculateResult.item,
+                monsterName: result.monster.name,
+                drops: calculateResult.item,
               });
               this.server.to(positionString).emit('getExp', {
                 email: user.email,
-                monsterName: result.monster.monster.name,
+                monsterName: result.monster.name,
                 exp: calculateResult.exp,
               });
               if (calculateResult.levelUp) {
@@ -216,10 +243,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 });
               }
             }
-            this.server.to(positionString).emit('monsterDefeat', {
-              email: user.email,
-              monsterName: result.monster.monster.name,
-            });
+
             this.battleRooms.delete(data.monsterId);
             this.clearIntervalForRoom(data.monsterId);
             return;
@@ -234,7 +258,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           );
           if (users.length) {
             const randomNum = Math.round(Math.random() * (users.length - 1));
-            const result: any = await this.newMonsterService.monsterAttack({
+            const result = await this.battleService.monsterAttack({
               userId: users[randomNum].id,
               monsterId: data.monsterId,
             });
@@ -242,7 +266,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
               this.server.to(positionString).emit('monsterAttack', {
                 email: result.user.email,
                 attack: result.monster.attack,
-                monsterName: result.monster.monster?.name,
+                monsterName: result.monster.name,
               });
               if (result.user.currentHp === 0) {
                 console.log('Pengguna telah mati');
@@ -274,22 +298,26 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('cuttingTree')
   async handleCuttingTree(
-    @MessageBody() data: any,
+    @MessageBody() data: { treeId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // const token = client.handshake.headers.auth as string;
+    const token = client.handshake.headers.auth as string;
     const userId = client.handshake.headers.userid as string;
+    const userX = await this.authService.checkTokenOnRedis(userId, token);
     try {
-      const user = await this.userService.findOne(userId);
-      const result: any = await this.newTreeService.reduceQuantity(
-        data.treeId,
-        userId,
-      );
+      const user = await this.userService.findOne(userX.id.toString());
+      if (user.currentHp <= 0) {
+        return client.emit('system', {
+          message: 'Cannot interact with tree you have been killed.',
+        });
+      }
+      // harusnya buat pengecekan apakah quantity tree ada
+      const result = await this.treeService.reduceQuantity(data.treeId, userId);
       if (result) {
         this.server.emit('cuttingTree', {
           email: user.email,
-          treeId: result._id,
-          treeName: result.tree.name,
+          treeId: result._id.toString(),
+          treeName: result.name,
           currentQuantity: result.quantity,
         });
         return;
@@ -313,10 +341,11 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.email,
         data.joinPosition,
       );
-      const subArea: any = await this.subAreaService.findOne(
-        data.leavePosition,
-      );
-      for (const monster of subArea.subAreaDetails.monsters) {
+      const subArea = await this.subAreaService.findOne(data.leavePosition);
+      const monsters = await this.monsterService.findAll({
+        subAreaId: subArea._id.toString(),
+      });
+      for (const monster of monsters) {
         if (this.battleRooms.has(monster._id.toString())) {
           const currentPlayers = this.battleRooms
             .get(monster._id.toString())
@@ -332,7 +361,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
             data.joinPosition,
           );
           const foundUser = currentRooms.find(
-            (userX: any) => userX.id === user._id.toString(),
+            (userX) => userX.id === user._id.toString(),
           );
           if (!foundUser) {
             currentRooms.push({
@@ -358,8 +387,6 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           joinPosition: data.joinPosition,
           leavePosition: data.leavePosition,
         });
-        // const area = await this.areaService.findOne(user._id.toString());
-        // client.emit('getSubAreaDetails', area);
       }
     } catch (error) {
       console.log(error);
@@ -375,43 +402,3 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 }
-
-// console.log(client.rooms);
-// const sockets = await this.server
-//   .in('652784523af8cb2c75bfe799')
-//   .fetchSockets();
-
-// for (const socket of sockets) {
-//   console.log(socket.id);
-//   console.log(socket.handshake);
-
-//   console.log(socket.rooms);
-//   console.log(socket.data);
-// }
-
-// contoh cara yang dapat di terapkan.
-// kalau pakai jwt user bisa login dibanyak device
-// makannya itu dilakukan pengecekan di redis dulu.
-
-// contoh selanjutnya
-// Jika mengakses controller yang tidak public,
-// di authguardnya cukup verify jwt dan
-// tidak usah cek di redis apakah begitu?
-// sepertinya ada masalah ketika pengguna telah join session
-// tapi melakukan fetchdata yang membutuhkan token
-// apa yang terjadi jika token expired?
-// gak mungkin dong log out session,
-// maka terapkan refresh token,
-// jika menerapkan refresh token, maka nanti token akan berubah
-// lalu apakah itu nanti akan menyebabkan masalah?
-// ada masalah, ketika pembahruan auth ketika ada perubahan di
-// state auth maka aplikasi akan dijalankan ulang
-//
-// apakah perlu membedakan token untuk session dengan token jwt?
-// juga belum tau
-
-// masalahnya adalah karena validate membutuhkan userId
-// jadi akan di terapkan jwt
-// masalahnya saat jwt expire maka userId tidak dapat ditemukan.
-// apa yang terjadi jika userId tidak dapat ditemukan?
-// pembersihan room tidak dapat dilakukan.

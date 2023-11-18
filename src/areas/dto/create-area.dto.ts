@@ -1,5 +1,4 @@
 import { IsNumber, IsString } from 'class-validator';
-import { SubArea } from 'src/sub-areas/schemas/sub-area.schema';
 
 export class CreateAreaDto {
   @IsString()
@@ -7,6 +6,4 @@ export class CreateAreaDto {
 
   @IsNumber()
   column: number;
-
-  subAreas: SubArea[];
 }

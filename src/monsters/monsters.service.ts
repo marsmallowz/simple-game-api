@@ -1,26 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMonsterDto } from './dto/create-monster.dto';
 import { UpdateMonsterDto } from './dto/update-monster.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Monster } from './schemas/monster.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class MonstersService {
-  create(createMonsterDto: CreateMonsterDto) {
-    return 'This action adds a new monster';
+  constructor(
+    @InjectModel(Monster.name) private monsterModel: Model<Monster>,
+  ) {}
+
+  async create(createMonsterDto: CreateMonsterDto) {
+    return await this.monsterModel.create(createMonsterDto);
   }
 
-  findAll() {
-    return `This action returns all monsters`;
+  async findAll(updateMonsterDto: UpdateMonsterDto) {
+    const res = await this.monsterModel.find(updateMonsterDto).populate({
+      path: 'rawMaterialDrops.rawMaterial',
+      model: 'RawMaterial',
+    });
+
+    return res;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} monster`;
+  async findOne(id: string) {
+    return await this.monsterModel.findById(id);
   }
 
-  update(id: number, updateMonsterDto: UpdateMonsterDto) {
-    return `This action updates a #${id} monster`;
+  async update(id: string, updateMonsterDto: UpdateMonsterDto) {
+    return await this.monsterModel.findByIdAndUpdate(id, updateMonsterDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} monster`;
+  async remove(id: string) {
+    return await this.monsterModel.findByIdAndDelete(id);
   }
 }

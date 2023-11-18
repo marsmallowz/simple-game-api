@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { CreateConsumableDto } from './dto/create-consumable.dto';
 import { UpdateConsumableDto } from './dto/update-consumable.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Consumable } from './schemas/consumable.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class ConsumablesService {
-  create(createConsumableDto: CreateConsumableDto) {
-    return 'This action adds a new consumable';
+  constructor(
+    @InjectModel(Consumable.name) private consumableModel: Model<Consumable>,
+  ) {}
+
+  async create(createConsumableDto: CreateConsumableDto) {
+    return await this.consumableModel.create(createConsumableDto);
   }
 
   findAll() {

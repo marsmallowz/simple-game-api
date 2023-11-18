@@ -11,7 +11,9 @@ import { RawMaterialsService } from './raw-materials.service';
 import { CreateRawMaterialDto } from './dto/create-raw-material.dto';
 import { UpdateRawMaterialDto } from './dto/update-raw-material.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/auth.decorator';
 
+@Public()
 @ApiTags('raw-materials')
 @Controller('raw-materials')
 export class RawMaterialsController {
@@ -29,7 +31,7 @@ export class RawMaterialsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.rawMaterialsService.findOne(+id);
+    return this.rawMaterialsService.findOne(id);
   }
 
   @Patch(':id')
@@ -37,11 +39,11 @@ export class RawMaterialsController {
     @Param('id') id: string,
     @Body() updateRawMaterialDto: UpdateRawMaterialDto,
   ) {
-    return this.rawMaterialsService.update(+id, updateRawMaterialDto);
+    return this.rawMaterialsService.update(id, updateRawMaterialDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.rawMaterialsService.remove(+id);
+    return this.rawMaterialsService.remove(id);
   }
 }

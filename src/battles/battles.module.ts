@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { NewMonstersService } from './new-monsters.service';
-import { NewMonstersController } from './new-monsters.controller';
+import { BattlesService } from './battles.service';
+import { BattlesController } from './battles.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { NewMonster, NewMonsterSchema } from './schemas/new-monster.schema';
 import { User, UserSchema } from 'src/users/schemas/user.schema';
 import {
   RawMaterial,
@@ -12,18 +11,19 @@ import {
   Inventory,
   InventorySchema,
 } from 'src/inventories/schemas/inventory.schema';
+import { Monster, MonsterSchema } from 'src/monsters/schemas/monster.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: NewMonster.name, schema: NewMonsterSchema },
+      { name: Monster.name, schema: MonsterSchema },
       { name: User.name, schema: UserSchema },
       { name: RawMaterial.name, schema: RawMaterialSchema },
       { name: Inventory.name, schema: InventorySchema },
     ]),
   ],
-  controllers: [NewMonstersController],
-  providers: [NewMonstersService],
-  exports: [NewMonstersService],
+  providers: [BattlesService],
+  controllers: [BattlesController],
+  exports: [BattlesService],
 })
-export class NewMonstersModule {}
+export class BattlesModule {}

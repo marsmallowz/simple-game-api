@@ -64,16 +64,11 @@ export class AuthService {
       if (!isEqual) {
         throw new UnauthorizedException('Password does not match');
       }
-      const tokens = await this.generateTokens({
+      return await this.generateTokens({
         id: user._id.toString(),
         email: user.email,
+        inventoryId: user.inventory.toString(),
       });
-      // await this.uniqueTokenStorage.insert(
-      //   user._id.toString(),
-      //   tokens.accessToken,
-      // );
-      return { userId: user._id.toString(), ...tokens };
-      // return { userId: user._id.toString(), token: token };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
@@ -115,6 +110,7 @@ export class AuthService {
       const userX = await this.userModel.create(
         [
           {
+            username: user.email,
             hp: fixHp,
             mp: fixMp,
             currentHp: fixHp,
@@ -159,6 +155,8 @@ export class AuthService {
         email: userX[0].email,
       };
     } catch (error) {
+      console.log(error);
+
       await session.abortTransaction();
       session.endSession();
       if (error.code === 11000) {
@@ -173,7 +171,7 @@ export class AuthService {
     try {
       const result = await this.jwtService.verify(token);
       const user = await this.userModel.findOne({
-        email: result.payload.email,
+        email: result.email,
         token: token,
       });
       if (user === null) {
@@ -198,7 +196,7 @@ export class AuthService {
     try {
       const result = await this.jwtService.verify(token);
       const user = await this.userModel.findOne({
-        email: result.payload.email,
+        email: result.email,
         token: true,
         verification: true,
       });
@@ -296,7 +294,7 @@ export class AuthService {
     try {
       const isValid = await this.uniqueTokenStorage.validate(userId, token);
       if (isValid) {
-        const user = await this.userModel.findById(userId).populate('position');
+        const user = await this.userModel.findById(userId);
         if (user) {
           return { id: user._id, email: user.email, position: user.position };
         } else {
@@ -369,6 +367,7 @@ export class AuthService {
       return this.generateTokens({
         id: user._id.toString(),
         email: user.email,
+        inventoryId: user.inventory.toString(),
       });
     } catch (error) {
       if (error instanceof InvalidatedRefreshTokenError) {
@@ -378,14 +377,23 @@ export class AuthService {
     }
   }
 
-  async generateTokens({ id, email }: { id: string; email: string }) {
+  async generateTokens({
+    id,
+    email,
+    inventoryId,
+  }: {
+    id: string;
+    email: string;
+    inventoryId: string;
+  }) {
     const refreshTokenId = randomUUID();
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<ActiveUserData>>(
         id,
         this.jwtConfiguration.accesTokenTtl,
         {
-          email: email,
+          email,
+          inventoryId,
         },
       ),
       this.signToken(id, this.jwtConfiguration.refreshTokenTtl, {
@@ -393,7 +401,7 @@ export class AuthService {
       }),
     ]);
     await this.refreshTokenIdsStorage.insert(id, refreshTokenId);
-    return { accessToken, refreshToken };
+    return { userId: id, accessToken, refreshToken };
   }
 
   private async signToken<T>(userId: string, expiresIn: number, payload?: T) {
