@@ -55,8 +55,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('request-verify')
-  requestVerify(@Body() body: { email: string }) {
-    return this.authService.requestVerify(body.email);
+  requestVerify(@Body() body: { usernameOrEmail: string }) {
+    return this.authService.requestVerify(body.usernameOrEmail);
   }
 
   @Public()

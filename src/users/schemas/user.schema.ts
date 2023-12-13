@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { Equipment } from 'src/equipment/schemas/equipment.schema';
 import { Inventory } from 'src/inventories/schemas/inventory.schema';
 
 export type UserDocument = HydratedDocument<User>;
@@ -14,6 +15,12 @@ export class User {
 
   @Prop()
   password: string;
+
+  @Prop({ default: 5 })
+  stamina: number;
+
+  @Prop({ default: 5 })
+  currentStamina: number;
 
   @Prop()
   hp: number;
@@ -53,6 +60,69 @@ export class User {
 
   @Prop()
   luck: number;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  rightHand: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  leftHand: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  head: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  body: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  rightArm: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  leftArm: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  lowerBody: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  rightLeg: Equipment;
+
+  @Prop({
+    type: 'ObjectId',
+    ref: 'Equipment',
+    default: null,
+  })
+  leftLeg: Equipment;
 
   @Prop({ default: 2 })
   pointLeft: number;

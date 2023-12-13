@@ -34,4 +34,8 @@ export class CreateMonsterDto {
   @IsOptional()
   @IsArray()
   rawMaterialDrops: { rawMaterial: { id: string }; rate: number }[];
+
+  @IsOptional()
+  @IsArray()
+  consumableDrops: { consumable: { id: string }; rate: number }[];
 }

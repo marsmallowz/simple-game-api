@@ -29,6 +29,7 @@ import {
   RefreshTokenIdsStorage,
 } from './refresh-token-ids.storage';
 import { RefreshTokenDto } from './dto/resfresh-token.dto';
+import { UserQuest } from 'src/user-quests/schemas/user-quest.schema';
 
 @Injectable()
 export class AuthService {
@@ -36,6 +37,8 @@ export class AuthService {
     @InjectConnection() private readonly connection: mongoose.Connection,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Inventory.name) private inventoryModel: Model<Inventory>,
+    @InjectModel(UserQuest.name) private userQuestModel: Model<UserQuest>,
+
     private readonly mailerService: MailerService,
     private readonly hasingService: HashingService,
     private jwtService: JwtService,
@@ -49,7 +52,10 @@ export class AuthService {
   async signIn(signInDto: SignInDto) {
     try {
       const user = await this.userModel.findOne({
-        email: signInDto.email,
+        $or: [
+          { email: signInDto.usernameOrEmail },
+          { username: signInDto.usernameOrEmail },
+        ],
       });
       if (!user) {
         throw new UnauthorizedException('User does not exists');
@@ -110,7 +116,7 @@ export class AuthService {
       const userX = await this.userModel.create(
         [
           {
-            username: user.email,
+            username: user.username,
             hp: fixHp,
             mp: fixMp,
             currentHp: fixHp,
@@ -144,7 +150,7 @@ export class AuthService {
       const websiteLink = `${process.env.WEB_URL}/auth/verify?token=${token}`;
       const newTabLink = `<a href="${websiteLink}" target="_blank">disini</a>`;
       await this.mailerService.sendMail({
-        to: 'alsandymaulana@gmail.com',
+        to: signUpDto.email,
         from: `${process.env.EMAIL_USER}`,
         subject: 'Validation account Simple Game',
         html: `Halo #marsmallowz,<br><br>untuk verfikasi silahkan klik ${newTabLink}.<br><br>Terima kasih!`,
@@ -237,7 +243,7 @@ export class AuthService {
       const websiteLink = `${process.env.WEB_URL}/auth/verify?token=${token}`;
       const newTabLink = `<a href="${websiteLink}" target="_blank">disini</a>`;
       await this.mailerService.sendMail({
-        to: 'alsandymaulana@gmail.com',
+        to: email,
         from: `${process.env.EMAIL_USER}`,
         subject: 'Validation account Simple Game',
         html: `Halo #marsmallowz,<br><br>untuk verfikasi silahkan klik ${newTabLink}.<br><br>Terima kasih!`,
@@ -254,10 +260,10 @@ export class AuthService {
     }
   }
 
-  async requestVerify(email: string) {
+  async requestVerify(usernameOrEmail: string) {
     try {
       const user = await this.userModel.findOne({
-        email: email,
+        $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
         verification: false,
       });
       if (user === null) {
@@ -267,13 +273,13 @@ export class AuthService {
         user._id.toString(),
         this.jwtConfiguration.accesTokenTtl,
         {
-          email: email,
+          email: user.email,
         },
       );
       const websiteLink = `${process.env.WEB_URL}/auth/verify?token=${token}`;
       const newTabLink = `<a href="${websiteLink}" target="_blank">disini</a>`;
       await this.mailerService.sendMail({
-        to: 'alsandymaulana@gmail.com',
+        to: user.email,
         from: `${process.env.EMAIL_USER}`,
         subject: 'Reset password account Simple Game',
         html: `Halo #marsmallowz,<br><br>untuk reset password silahkan klik ${newTabLink}.<br><br>Terima kasih!`,
@@ -328,9 +334,15 @@ export class AuthService {
         .findById(userId)
         .select('-password')
         .populate('position')
+        .populate('head')
+        .populate('rightHand')
+        .populate('leftHand')
+        .lean()
         .exec();
+
       if (user) {
-        return user;
+        const userQuest = await this.userQuestModel.find({ userId: userId });
+        return { ...user, quests: userQuest };
       } else {
         throw new NotFoundException();
       }

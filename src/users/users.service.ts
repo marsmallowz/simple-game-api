@@ -37,7 +37,7 @@ export class UsersService {
         email: email,
       },
       { position: position },
-      { new: true, select: 'email' },
+      { new: true, select: 'email username' },
     );
     return result;
   }

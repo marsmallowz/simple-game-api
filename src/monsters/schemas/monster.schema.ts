@@ -1,9 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import {
-  Consumable,
-  ConsumableSchema,
-} from 'src/consumables/schemas/consumable.schema';
 
 export type MonsterDocument = HydratedDocument<Monster>;
 
@@ -46,8 +42,12 @@ export class Monster {
   })
   rawMaterialDrops: { rate: number; rawMaterial: string }[];
 
-  @Prop({ type: [ConsumableSchema] })
-  consumableDrops: Consumable[];
+  @Prop({
+    type: [
+      { rate: Number, consumable: { type: 'ObjectId', ref: 'Consumable' } },
+    ],
+  })
+  consumableDrops: { rate: number; consumable: string }[];
 }
 
 export const MonsterSchema = SchemaFactory.createForClass(Monster);

@@ -16,15 +16,20 @@ import {
   InventorySchema,
 } from 'src/inventories/schemas/inventory.schema';
 import { RefreshTokenIdsStorage } from './refresh-token-ids.storage';
+import {
+  UserQuest,
+  UserQuestSchema,
+} from 'src/user-quests/schemas/user-quest.schema';
 
 // kalau tidak akan error saat penggunaan jwt
 dotenv.config(); // Load .env file
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
       { name: Inventory.name, schema: InventorySchema },
+      { name: UserQuest.name, schema: UserQuestSchema },
     ]),
     JwtModule.register({
       global: true,

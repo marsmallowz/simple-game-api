@@ -1,5 +1,5 @@
 export interface ActiveUserData {
-  sub: number;
+  sub: string;
   email: string;
   inventoryId: string;
 }

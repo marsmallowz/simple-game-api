@@ -12,6 +12,10 @@ import {
   InventorySchema,
 } from 'src/inventories/schemas/inventory.schema';
 import { Monster, MonsterSchema } from 'src/monsters/schemas/monster.schema';
+import {
+  UserQuest,
+  UserQuestSchema,
+} from 'src/user-quests/schemas/user-quest.schema';
 
 @Module({
   imports: [
@@ -20,6 +24,7 @@ import { Monster, MonsterSchema } from 'src/monsters/schemas/monster.schema';
       { name: User.name, schema: UserSchema },
       { name: RawMaterial.name, schema: RawMaterialSchema },
       { name: Inventory.name, schema: InventorySchema },
+      { name: UserQuest.name, schema: UserQuestSchema },
     ]),
   ],
   providers: [BattlesService],

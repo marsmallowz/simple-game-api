@@ -21,7 +21,8 @@ export class InventoriesService {
           path: 'rawMaterials.rawMaterial',
           model: 'RawMaterial',
         })
-        .populate({ path: 'consumables.consumable', model: 'Consumable' });
+        .populate({ path: 'consumables.consumable', model: 'Consumable' })
+        .populate({ path: 'equipments.equipment', model: 'Equipment' });
       return inventory;
     } catch (error) {
       throw Error(error);

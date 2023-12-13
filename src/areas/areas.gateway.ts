@@ -36,7 +36,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private intervals: Map<string, NodeJS.Timeout> = new Map();
   private battleRooms: Map<
     string,
-    { id: string; email: string; damage: number }[]
+    { id: string; email: string; username: string; damage: number }[]
   > = new Map();
 
   async handleConnection(client: Socket) {
@@ -60,6 +60,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         currentRooms.push({
           id: userIdString,
           email: user.email,
+          username: user.username,
         });
         this.subAreaRoomsService.subAreaRooms.set(
           user.position.toString(),
@@ -70,12 +71,13 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           {
             id: userIdString,
             email: user.email,
+            username: user.username,
           },
         ]);
       }
       this.server.to(user.position.toString()).emit('joinSubArea', {
         id: userIdString,
-        email: user.email,
+        username: user.username,
         position: user.position.toString(),
       });
       const subArea = await this.subAreaService.findOne(
@@ -125,7 +127,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (
           this.subAreaRoomsService.subAreaRooms.has(user.position.toString())
         ) {
-          console.log('Yang keluar:', user.email);
+          console.log('Yang keluar:', user.username);
           const currentRooms = this.subAreaRoomsService.subAreaRooms
             .get(user.position.toString())
             .filter((userx) => userx.id !== userIdString);
@@ -173,13 +175,14 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // ada masalah data di battleRooms tidak terupdate jika pengguna leave subarea
         if (this.battleRooms.has(data.monsterId)) {
           const currentPlayers = this.battleRooms.get(data.monsterId);
-          const hasUser = currentPlayers.some(
-            (userX) => userX.id === userX.id.toString(),
-          );
+          const hasUser = currentPlayers.some((currentPlayer) => {
+            return currentPlayer.id === userX.id.toString();
+          });
           if (!hasUser) {
             currentPlayers.push({
               id: userX.id.toString(),
               email: userX.email,
+              username: user.username,
               damage: 0,
             });
           }
@@ -187,7 +190,12 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           this.battleRooms.set(data.monsterId, currentPlayers);
         } else {
           this.battleRooms.set(data.monsterId, [
-            { id: userX.id.toString(), email: userX.email, damage: 0 },
+            {
+              id: userX.id.toString(),
+              email: userX.email,
+              username: user.username,
+              damage: 0,
+            },
           ]);
         }
         const result = await this.battleService.attackMonster({
@@ -208,14 +216,14 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         if (result.monster) {
           this.server.to(positionString).emit('attackMonster', {
-            email: userX.email,
+            username: user.username,
             monsterName: result.monster.name,
             monsterId: result.monster._id.toString(),
             damage: result.damage,
           });
           if (result.monster.currentHp <= 0) {
             this.server.to(positionString).emit('monsterDefeat', {
-              email: userX.email,
+              username: user.username,
               monsterName: result.monster.name,
             });
             for (const user of this.battleRooms.get(data.monsterId)) {
@@ -226,18 +234,18 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
                   monsterId: data.monsterId,
                 });
               this.server.to(positionString).emit('getDrop', {
-                email: user.email,
+                username: user.username,
                 monsterName: result.monster.name,
                 drops: calculateResult.item,
               });
               this.server.to(positionString).emit('getExp', {
-                email: user.email,
+                username: user.username,
                 monsterName: result.monster.name,
                 exp: calculateResult.exp,
               });
               if (calculateResult.levelUp) {
                 this.server.to(positionString).emit('levelUp', {
-                  email: user.email,
+                  username: user.username,
                   level: calculateResult.level,
                   pointLeft: calculateResult.pointLeft,
                 });
@@ -258,13 +266,15 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
           );
           if (users.length) {
             const randomNum = Math.round(Math.random() * (users.length - 1));
+            console.log(users);
+            console.log(randomNum);
             const result = await this.battleService.monsterAttack({
               userId: users[randomNum].id,
               monsterId: data.monsterId,
             });
             if (result.user) {
               this.server.to(positionString).emit('monsterAttack', {
-                email: result.user.email,
+                username: result.user.username,
                 attack: result.monster.attack,
                 monsterName: result.monster.name,
               });
@@ -316,6 +326,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (result) {
         this.server.emit('cuttingTree', {
           email: user.email,
+          username: user.username,
           treeId: result._id.toString(),
           treeName: result.name,
           currentQuantity: result.quantity,
@@ -367,6 +378,7 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
             currentRooms.push({
               id: user._id.toString(),
               email: user.email,
+              username: user.username,
             }),
               this.subAreaRoomsService.subAreaRooms.set(
                 data.joinPosition,
@@ -378,12 +390,14 @@ export class AreasGateway implements OnGatewayConnection, OnGatewayDisconnect {
             {
               id: user._id.toString(),
               email: user.email,
+              username: user.username,
             },
           ]);
         }
         this.server.to(data.joinPosition).emit('joinSubArea', {
           id: user._id.toString(),
           email: data.email,
+          username: user.username,
           joinPosition: data.joinPosition,
           leavePosition: data.leavePosition,
         });

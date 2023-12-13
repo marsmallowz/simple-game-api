@@ -4,6 +4,7 @@ import mongoose, { Model } from 'mongoose';
 import { Inventory } from 'src/inventories/schemas/inventory.schema';
 import { Monster } from 'src/monsters/schemas/monster.schema';
 import { RawMaterial } from 'src/raw-materials/schemas/raw-material.schema';
+import { UserQuest } from 'src/user-quests/schemas/user-quest.schema';
 import { User } from 'src/users/schemas/user.schema';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class BattlesService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(RawMaterial.name) private rawMaterialModel: Model<RawMaterial>,
     @InjectModel(Inventory.name) private inventoryModel: Model<Inventory>,
+    @InjectModel(UserQuest.name) private userQuestModel: Model<UserQuest>,
   ) {}
 
   async calculateExpAndDrop({
@@ -105,6 +107,18 @@ export class BattlesService {
           item.push(rawMaterial.rawMaterial);
         }
       }
+
+      await this.userQuestModel.updateMany(
+        {
+          complete: false,
+          'progress.monster': monsterId,
+          userId: userId,
+        },
+        {
+          $inc: { 'progress.$.currentDefeat': 1 },
+        },
+      );
+
       await user.save();
       await userInventory.save();
       await session.commitTransaction();

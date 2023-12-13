@@ -11,7 +11,9 @@ import { ConsumablesService } from './consumables.service';
 import { CreateConsumableDto } from './dto/create-consumable.dto';
 import { UpdateConsumableDto } from './dto/update-consumable.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/auth.decorator';
 
+@Public()
 @ApiTags('consumables')
 @Controller('consumables')
 export class ConsumablesController {

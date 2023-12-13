@@ -14,15 +14,15 @@ export class TasksService {
   private readonly logger = new Logger(TasksService.name);
 
   @Cron('0 */5 * * * *')
-  async raiseMonster() {
+  async raiseMonsters() {
     await this.monsterModel.updateMany({ currentHp: 0 }, [
       { $set: { currentHp: '$totalHp' } },
     ]);
-    this.logger.debug('Called when the second is 5 minute');
+    this.logger.debug('Called every 5 minute to raise monsters');
   }
 
   @Cron('0 */10 * * * *')
-  async handleCron() {
+  async raiseTrees() {
     await this.treeModel.updateMany({}, [
       {
         $set: {
@@ -36,6 +36,6 @@ export class TasksService {
         },
       },
     ]);
-    this.logger.debug('Called when the second is 5 seconds');
+    this.logger.debug('Called every 10 minute to increment trees');
   }
 }

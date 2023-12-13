@@ -20,6 +20,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TasksModule } from './tasks/tasks.module';
 import { BattlesModule } from './battles/battles.module';
 import { ActionsModule } from './actions/actions.module';
+import { NpcsModule } from './npcs/npcs.module';
+import { QuestsModule } from './quests/quests.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { UserQuestsModule } from './user-quests/user-quests.module';
 
 @Module({
   imports: [
@@ -52,6 +56,10 @@ import { ActionsModule } from './actions/actions.module';
     TasksModule,
     BattlesModule,
     ActionsModule,
+    NpcsModule,
+    QuestsModule,
+    EquipmentModule,
+    UserQuestsModule,
   ],
   controllers: [AppController],
   providers: [
